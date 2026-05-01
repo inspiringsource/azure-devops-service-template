@@ -2,23 +2,12 @@
 
 Azure DevOps service starter built as a public portfolio demo, demonstrating CI/CD, Docker, testing, logging, health checks, and Azure-ready infrastructure.
 
-## Project Purpose
-
-This repository demonstrates Azure/DevOps workflows and engineering practices rather than business logic depth. It is not a production system. The goal is to show a reusable starter with solid operational basics and a realistic delivery path.
-
-## What’s Included
-
-- TypeScript Node.js service with a clear structure
-- Health and readiness endpoints (`/health`, `/ready`)
-- Logging and centralized error handling
-- Jest tests
-- Docker for local and cloud runs
-- GitHub Actions CI/CD
-- Docker image publishing to GHCR
-- Minimal Azure Container Apps example using Bicep
-- Simple starter/template setup for reuse
-
 ## Architecture Overview
+
+<img src="docs/architecture-diagram.png" alt="Azure DevOps Service Starter Architecture" width="60%">
+<p><em>High-level CI/CD and deployment flow for the service starter.</em></p>
+
+## Project Structure
 
 - `src/config`: runtime configuration
 - `src/routes`: HTTP endpoints
@@ -38,8 +27,7 @@ See `docs/ARCHITECTURE.md` for details.
 
 ## CI/CD Pipeline
 
-CI/CD is disabled by default. This repository is a template.
-To enable automatic builds and deployments, update the GitHub Actions triggers and provide required secrets.
+CI/CD is disabled by default. Enable it by updating the GitHub Actions triggers and providing the required secrets.
 
 When run manually:
 
@@ -83,7 +71,7 @@ docker run -p 3000:3000 --env-file .env azure-devops-service-starter
 docker compose up --build
 ```
 
-Includes a `/health` check and restart policy.
+Runs with basic health check and restart policy for local testing.
 
 ## Testing
 
@@ -140,4 +128,16 @@ It intentionally excludes:
 - authentication
 - domain-specific logic
 
-The goal is to provide a clean base that can be extended for different services without removing pre-existing complexity.
+The goal is to provide a clean base that can be extended for different services without unnecessary pre-existing complexity.
+
+## What’s Included
+
+- TypeScript Node.js service with a clear structure
+- Health and readiness endpoints (`/health`, `/ready`)
+- Logging and centralized error handling
+- Jest tests
+- Docker for local and cloud runs
+- GitHub Actions CI/CD (template, disabled by default)
+- Docker image publishing to GHCR
+- Minimal Azure Container Apps example using Bicep
+- Simple starter/template setup for reuse
