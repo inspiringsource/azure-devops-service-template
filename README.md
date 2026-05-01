@@ -132,8 +132,12 @@ az deployment group create \
 
 ## Scope
 
-- No database
-- No authentication
-- No domain logic
+This starter focuses on the delivery pipeline and service structure.
 
-Focus is on the delivery pipeline and service structure.
+It intentionally excludes:
+
+- database integration
+- authentication
+- domain-specific logic
+
+The goal is to provide a clean base that can be extended for different services without removing pre-existing complexity.
