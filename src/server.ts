@@ -3,6 +3,6 @@ import { env } from './config/env';
 
 app.listen(env.port, () => {
   console.log(
-    `Azure DevOps Service Template listening on port ${env.port} in ${env.appEnv}.`,
+    `${env.displayName} (${env.serviceName}) listening on port ${env.port} in ${env.appEnv} with version ${env.appVersion}.`,
   );
 });

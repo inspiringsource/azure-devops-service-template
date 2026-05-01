@@ -1,0 +1,7 @@
+{
+  "serviceName": "azure-devops-service-starter",
+  "displayName": "Azure DevOps Service Starter",
+  "defaultPort": 3000,
+  "deploymentTarget": "azure-container-apps",
+  "containerRegistry": "ghcr.io"
+}

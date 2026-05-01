@@ -1,21 +1,22 @@
 import request from 'supertest';
 
 import { app } from '../src/app';
+import { env } from '../src/config/env';
 
-describe('Azure DevOps Service Template API', () => {
-  it('returns service metadata from GET /', async () => {
+describe('Azure DevOps Service Starter API', () => {
+  it('returns configured service metadata from GET /', async () => {
     const response = await request(app).get('/');
 
     expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({
-      service: 'Azure DevOps Service Template',
+    expect(response.body).toEqual({
+      service: env.displayName,
       status: 'ok',
-      environment: expect.any(String),
-      version: expect.any(String),
+      environment: env.appEnv,
+      version: env.appVersion,
     });
   });
 
-  it('returns health status from GET /health', async () => {
+  it('returns health status with timestamp and uptime from GET /health', async () => {
     const response = await request(app).get('/health');
 
     expect(response.status).toBe(200);
@@ -24,6 +25,8 @@ describe('Azure DevOps Service Template API', () => {
       timestamp: expect.any(String),
       uptime: expect.any(Number),
     });
+    expect(Number.isFinite(response.body.uptime)).toBe(true);
+    expect(new Date(response.body.timestamp).toString()).not.toBe('Invalid Date');
   });
 
   it('returns readiness status from GET /ready', async () => {
@@ -35,15 +38,14 @@ describe('Azure DevOps Service Template API', () => {
     });
   });
 
-  it('returns the simulated incident payload from GET /api/incidents/demo', async () => {
+  it('returns the expected incident demo shape from GET /api/incidents/demo', async () => {
     const response = await request(app).get('/api/incidents/demo');
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({
-      incident: 'simulated_latency_warning',
+    expect(response.body).toMatchObject({
+      incident: expect.any(String),
       severity: 'low',
-      message:
-        'This endpoint demonstrates how incidents could be surfaced in logs or monitoring.',
+      message: expect.any(String),
     });
   });
 

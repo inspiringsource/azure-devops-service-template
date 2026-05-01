@@ -1,14 +1,15 @@
 {
-  "name": "azure-devops-service-template",
+  "name": "azure-devops-service-starter",
   "version": "1.0.0",
-  "description": "Public portfolio demo and reusable Azure DevOps service template for production-style delivery workflows.",
+  "description": "Public portfolio demo and reusable Azure DevOps service starter/template for production-style delivery workflows.",
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "test": "jest --runInBand",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "init:template": "sh scripts/init-template.sh"
   },
   "engines": {
     "node": ">=20"

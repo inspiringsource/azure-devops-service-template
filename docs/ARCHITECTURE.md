@@ -2,7 +2,7 @@
 
 ## App Structure
 
-The application is intentionally simple and split by concern:
+The starter is intentionally simple and split by concern:
 
 - `src/server.ts` starts the HTTP listener
 - `src/app.ts` assembles middleware and routes
@@ -10,8 +10,10 @@ The application is intentionally simple and split by concern:
 - `src/routes/index.ts` defines the service endpoints
 - `src/middleware/requestLogger.ts` records request metadata
 - `src/middleware/errorHandler.ts` handles 404 and 500 responses
+- `template.config.json` holds starter defaults for name, display name, port, and deployment target
+- `scripts/init-template.sh` helps adapt the starter to a new service name
 
-This keeps the runtime easy to understand while still matching the shape of a maintainable production-oriented service template.
+This keeps the runtime easy to understand while still matching the shape of a maintainable production-style starter/template.
 
 ## Request Flow
 
@@ -49,20 +51,44 @@ The GitHub Actions workflow demonstrates a practical baseline pipeline:
 2. Install dependencies with `npm ci`
 3. Run automated tests
 4. Compile TypeScript
-5. Build the Docker image
-6. Leave a realistic Azure deployment section ready for secret-backed enablement
+5. Run lint checks
+6. Build the Docker image
+7. On pushes to `main`, publish the image to GitHub Container Registry
+8. Leave a realistic Azure deployment section ready for secret-backed enablement
+
+In shorthand, the delivery flow is:
+
+`code -> test -> build -> Docker image -> GHCR -> optional Azure deploy`
+
+GHCR publishing uses `GITHUB_TOKEN`. Azure deployment placeholders should use GitHub Secrets or Azure Key Vault backed credentials. Real secrets should never be committed.
 
 This is enough to show quality gates and deployable artifact creation without claiming the demo is a full production system or enterprise platform.
 
+## Azure Container Apps Architecture
+
+The included [infra/main.bicep](../infra/main.bicep) example targets Azure Container Apps with a minimal resource set:
+
+- Existing resource group
+- Log Analytics workspace
+- Container Apps environment
+- Public-facing Container App running the service container image
+
+This matches the service shape well because the starter already exposes:
+
+- HTTP traffic on a configurable container port
+- `GET /health` for liveness-style monitoring
+- `GET /ready` for readiness-style checks
+- stdout/stderr logging that can flow into Azure monitoring
+
 ## Azure Deployment Target Options
 
-### 1. Azure App Service
+### 1. Azure Container Apps
 
-Good fit for a simple web API where managed hosting and fast setup matter more than deep orchestration control.
+Best fit for this starter when you want a modern Azure container runtime without introducing Kubernetes complexity.
 
-### 2. Azure Container Apps
+### 2. Azure App Service
 
-Good fit when the service should run as a container with revision-based deployments, simpler scaling, and clearer container-first operations.
+Also reasonable for a small API if App Service matches the target organization better than Container Apps.
 
 ### 3. Azure Kubernetes Service
 

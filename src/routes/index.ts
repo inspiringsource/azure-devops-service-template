@@ -6,7 +6,7 @@ export const router = Router();
 
 router.get('/', (_req, res) => {
   res.json({
-    service: 'Azure DevOps Service Template',
+    service: env.displayName,
     status: 'ok',
     environment: env.appEnv,
     version: env.appVersion,
