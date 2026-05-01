@@ -1,3 +1,10 @@
+# This workflow is disabled by default.
+# It is intended as a template/example.
+# To enable it, replace 'workflow_dispatch' with:
+#   push:
+#     branches: [ "main" ]
+#   pull_request:
+
 name: CI-CD
 
 permissions:
@@ -5,10 +12,7 @@ permissions:
   packages: write
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   build-test-package:
@@ -39,7 +43,7 @@ jobs:
         run: npm run lint
 
       - name: Log in to GitHub Container Registry
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: false
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -50,16 +54,16 @@ jobs:
         run: docker build -t $IMAGE_NAME:${{ github.sha }} .
 
       - name: Tag latest image
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: false
         run: docker tag $IMAGE_NAME:${{ github.sha }} $IMAGE_NAME:latest
 
       - name: Push SHA image to GHCR
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: docker push $IMAGE_NAME:${{ github.sha }}
+        if: false
+        run: echo "Disabled by default for template usage. Enable GHCR publishing before use."
 
       - name: Push latest image to GHCR
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: docker push $IMAGE_NAME:latest
+        if: false
+        run: echo "Disabled by default for template usage. Enable GHCR publishing before use."
 
       # Optional Azure deployment steps can be enabled after GHCR publishing.
       # Keep Azure credentials out of normal CI so pull requests and standard

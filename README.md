@@ -38,7 +38,10 @@ See `docs/ARCHITECTURE.md` for details.
 
 ## CI/CD Pipeline
 
-On push/PR:
+CI/CD is disabled by default. This repository is a template.
+To enable automatic builds and deployments, update the GitHub Actions triggers and provide required secrets.
+
+When run manually:
 
 1. `npm ci`
 2. `npm test`

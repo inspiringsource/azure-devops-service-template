@@ -24,7 +24,7 @@ README.md
 .env.example
 template.config.json
 docker-compose.yml
-.github/workflows/ci-cd.yml
+.github/workflows/template-ci-cd.yml
 src/config/env.ts
 src/routes/index.ts
 src/server.ts
