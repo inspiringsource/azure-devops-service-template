@@ -93,3 +93,22 @@ Also reasonable for a small API if App Service matches the target organization b
 ### 3. Azure Kubernetes Service
 
 Use AKS only when the platform actually needs Kubernetes-level orchestration, policy control, or multi-service operational patterns. For this demo, it is mentioned for completeness rather than implemented in depth.
+
+## Operational View
+
+Beyond how the code is structured, the service is designed to be operated:
+
+- **Health and readiness** — `GET /health` (liveness) and `GET /ready`
+  (readiness) give operators and orchestrators a simple, scriptable signal.
+- **Logging** — structured JSON on stdout/stderr flows into centralized logging
+  (e.g. Azure Monitor / Log Analytics) without extra agents.
+- **CI/CD** — the GitHub Actions pipeline builds, tests, and publishes immutable,
+  SHA-tagged images to GHCR, making deployments and rollbacks precise.
+- **Container deployment** — the service ships as a Docker image, runnable
+  locally via Docker Compose or in the cloud.
+- **Azure infrastructure** — `infra/main.bicep` provisions a minimal Container
+  Apps setup (Log Analytics, Container Apps environment, Container App) as
+  reproducible infrastructure-as-code.
+
+For day-to-day procedures see the [Operations Runbook](OPERATIONS_RUNBOOK.md),
+[Access Control](ACCESS_CONTROL.md), and [Security Baseline](SECURITY_BASELINE.md).

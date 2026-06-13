@@ -18,6 +18,37 @@ Azure DevOps service starter built as a public portfolio demo, demonstrating CI/
 
 See `docs/ARCHITECTURE.md` for details.
 
+## IT Operations & Modern Workplace Relevance
+
+Beyond CI/CD and deployment, this repository is documented as something that can
+actually be *operated and supported*. It demonstrates:
+
+- **Reproducible deployment** — immutable, SHA-tagged container images and Bicep
+  infrastructure-as-code.
+- **Operational documentation** — a runbook, access-control model, and
+  onboarding/offboarding checklists.
+- **Health checks & monitoring thinking** — `/health` and `/ready` endpoints with
+  structured stdout logging ready for centralized log collection.
+- **Incident response** — a realistic support flow from "user reports an outage"
+  through triage, log review, deployment check, escalation, and documentation.
+- **Access control & security baseline** — a simple role model and practical
+  least-privilege / secrets-hygiene expectations.
+
+This makes the repo relevant to **IT Support, System Operations, Azure, CI/CD,
+technical documentation, and service reliability** — not just application
+delivery. It is a reusable service template with serious operational
+documentation, not a full enterprise platform.
+
+### Operational Documentation
+
+- [Operations Runbook](docs/OPERATIONS_RUNBOOK.md) — health checks, restart/redeploy, log review, triage, rollback, escalation
+- [Access Control](docs/ACCESS_CONTROL.md) — Owner/Admin, Developer, Support, Viewer role model
+- [Onboarding & Offboarding](docs/ONBOARDING_OFFBOARDING.md) — access grant/removal and handover checklists
+- [Security Baseline](docs/SECURITY_BASELINE.md) — secrets, least privilege, dependency and image hygiene
+- [Architecture](docs/ARCHITECTURE.md) — app structure and operational view
+- [Incident Simulation](docs/INCIDENT_SIMULATION.md) — worked support/incident walkthrough
+- [Operational Changelog](docs/CHANGELOG_OPERATIONS.md) — example record of deploys, incidents, and access changes
+
 ## API Endpoints
 
 - `GET /` → service metadata (name, environment, version)
