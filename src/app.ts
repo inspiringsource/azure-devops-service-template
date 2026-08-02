@@ -1,13 +1,21 @@
 import express from 'express';
 
+import { env, RuntimeConfig } from './config/env';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
-import { router } from './routes';
+import { createRouter } from './routes';
 
-export const app = express();
+export const createApp = (config: RuntimeConfig = env) => {
+  const application = express();
 
-app.use(express.json());
-app.use(requestLogger);
-app.use(router);
-app.use(notFoundHandler);
-app.use(errorHandler);
+  application.disable('x-powered-by');
+  application.use(express.json({ limit: '100kb' }));
+  application.use(requestLogger);
+  application.use(createRouter(config));
+  application.use(notFoundHandler);
+  application.use(errorHandler);
+
+  return application;
+};
+
+export const app = createApp();

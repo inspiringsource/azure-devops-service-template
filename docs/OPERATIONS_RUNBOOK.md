@@ -1,150 +1,78 @@
 # Operations Runbook
 
-Practical, day-to-day procedures for running this service. The steps are written
-to be followed by a support engineer or junior system specialist without deep
-prior knowledge of the codebase.
-
-Endpoints referenced here:
-
-- `GET /` — service metadata (name, environment, version)
-- `GET /health` — liveness (status, uptime, timestamp)
-- `GET /ready` — readiness
-- `GET /api/incidents/demo` — simulated incident payload
-
-Replace `localhost:3000` with the real host or Azure Container App URL when
-working against a deployed environment.
-
-## 1. Service Health Check
-
-Confirm the service is alive and serving traffic.
+## Health and identity
 
 ```bash
-# Liveness — should return status: healthy with an uptime value
-curl -s http://localhost:3000/health
-
-# Readiness — should return status: ready
-curl -s http://localhost:3000/ready
-
-# Metadata — confirm the expected environment and version are running
-curl -s http://localhost:3000/
+curl --fail --silent https://my-service.example/health
+curl --fail --silent https://my-service.example/ready
+curl --fail --silent https://my-service.example/
 ```
 
-What to look for:
+`/health` proves the process is alive. `/ready` is intentionally shallow until
+required dependencies are added. `/` reports `APP_VERSION`, which the release
+workflow sets to the deployed commit SHA.
 
-- `/health` returns `"status": "healthy"` and a growing `uptime`.
-- `/ready` returns `"status": "ready"`.
-- `/` reports the environment (`development`, `staging`, `production`) and
-  version you expect to be deployed.
+## Logs
 
-If `/health` fails but the container is running, treat it as a process-level
-problem (see incident triage). If the host does not respond at all, treat it as
-an infrastructure/networking problem.
-
-## 2. Restart / Redeploy Procedure
-
-### Local (Docker)
+Each request log contains the generated request ID, method, path without query
+parameters, status, duration, and timestamp. The same request ID is returned in
+the `x-request-id` response header.
 
 ```bash
-# Restart the running container
-docker compose restart
+docker compose logs --follow
 
-# Rebuild and restart after a code or config change
-docker compose up --build -d
-```
-
-### Azure Container Apps
-
-A redeploy is normally triggered by publishing a new image and updating the
-Container App to the new revision.
-
-```bash
-az deployment group create \
-  --resource-group my-rg \
-  --template-file infra/main.bicep \
-  --parameters appName=my-service containerImage=ghcr.io/my-org/my-service:<tag>
-```
-
-After any restart or redeploy, re-run the **Service Health Check** above before
-considering the action complete.
-
-## 3. Log Review
-
-The service writes structured JSON logs to stdout/stderr. Each request log
-includes HTTP method, path, status code, duration, and timestamp.
-
-```bash
-# Local container logs (follow)
-docker compose logs -f
-
-# Azure Container Apps logs
 az containerapp logs show \
   --name my-service \
   --resource-group my-rg \
   --follow
 ```
 
-When reviewing logs, focus on:
+Do not copy tokens, personal data, or sensitive payloads into incident notes.
 
-- non-2xx/3xx status codes (`4xx` client errors, `5xx` server errors)
-- unusually high request durations
-- repeated errors clustered around a deployment timestamp
-- the centralized error handler output for 500 responses
+## Restart or redeploy
 
-## 4. Incident Triage
+Local restart:
 
-A simple, repeatable triage order:
+```bash
+docker compose restart
+```
 
-1. **Reproduce / confirm.** Hit `/health` and `/ready`. Is the issue real and
-   current, or already recovered?
-2. **Scope it.** One endpoint or the whole service? One user or everyone?
-3. **Check recent changes.** Was there a recent deployment? Compare the version
-   reported by `/` against the last known-good release.
-4. **Read the logs.** Look for errors around the time the issue started
-   (section 3).
-5. **Decide an action.** Restart, redeploy, roll back, or escalate.
-6. **Document.** Record what happened and what fixed it (see
-   [CHANGELOG_OPERATIONS.md](CHANGELOG_OPERATIONS.md)).
+Azure releases are manual. Re-run the release workflow for a chosen commit and
+enable its protected deployment job, or deploy a known immutable image directly:
 
-Severity guide (keep it simple):
+```bash
+az deployment group create \
+  --resource-group my-rg \
+  --template-file infra/main.bicep \
+  --parameters \
+    appName=my-service \
+    containerImage=ghcr.io/my-org/my-service@sha256:<digest> \
+    deploymentVersion=<full-commit-sha>
+```
 
-- **Low** — degraded but usable, no data risk. Handle in business hours.
-- **Medium** — partial outage or repeated errors affecting users.
-- **High** — full outage or suspected security/data issue. Escalate promptly.
+The GHCR package must be public for this secret-free template. Private GHCR
+requires registry credentials. ACR with managed identity is recommended for a
+production extension.
 
-## 5. Rollback Concept
+## Triage
 
-This service publishes immutable images tagged by commit SHA to GHCR, so a
-rollback is "deploy the previous known-good image" rather than reverting code in
-a hurry.
+1. Confirm `/health` and `/ready`, then scope the impact.
+2. Read `/` and compare its version with the expected release.
+3. Find related logs using time and request ID.
+4. Check the GitHub release run and Azure deployment result.
+5. Restart, redeploy a known digest, roll back, or escalate.
+6. Verify all three endpoints and document the result.
 
-1. Identify the last known-good image tag (previous commit SHA or `latest`
-   before the bad release).
-2. Redeploy that tag using the redeploy procedure in section 2.
-3. Verify with the health check.
-4. Record the rollback and open follow-up work to fix the root cause forward.
+## Rollback
 
-In Azure Container Apps, rolling back can also mean shifting traffic back to a
-previous healthy revision rather than deploying a new one.
+Identify the last known-good commit-SHA tag or digest and deploy it through the
+same Bicep path. Do not use a mutable tag as the rollback reference.
 
-## 6. Escalation Notes
+The template uses single-revision mode. A successful deployment makes the new
+revision active; this starter does not configure multiple active revisions or
+weighted traffic shifting. Rollback therefore means deploying the previous
+known-good image again.
 
-Escalate when:
-
-- the issue is **High** severity (full outage, data or security concern), or
-- a restart/redeploy/rollback does not restore service, or
-- the cause is outside this service (Azure platform incident, networking, DNS,
-  registry/GHCR availability), or
-- you are unsure and the impact is growing.
-
-When escalating, include:
-
-- what is broken and since when
-- impact (who/what is affected)
-- the version reported by `/` and the most recent deployment
-- relevant log excerpts (with sensitive data removed)
-- what you have already tried
-
-> This is a portfolio/template service. Role names, on-call rotations, and
-> contact details should be filled in per the adopting organization. See
-> [ACCESS_CONTROL.md](ACCESS_CONTROL.md) for the role model these procedures
-> assume.
+Escalate full outages, security/data concerns, infrastructure failures, or
+unresolved incidents. Include impact, time, version/digest, request IDs,
+sanitized logs, and actions already attempted.

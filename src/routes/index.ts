@@ -1,41 +1,47 @@
 import { Router } from 'express';
 
-import { env } from '../config/env';
+import { RuntimeConfig } from '../config/env';
 
-export const router = Router();
+export const createRouter = (config: RuntimeConfig): Router => {
+  const router = Router();
 
-router.get('/', (_req, res) => {
-  res.json({
-    service: env.displayName,
-    status: 'ok',
-    environment: env.appEnv,
-    version: env.appVersion,
+  router.get('/', (_req, res) => {
+    res.json({
+      service: config.displayName,
+      status: 'ok',
+      environment: config.appEnv,
+      version: config.appVersion,
+    });
   });
-});
 
-router.get('/health', (_req, res) => {
-  res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
+  router.get('/health', (_req, res) => {
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    });
   });
-});
 
-router.get('/ready', (_req, res) => {
-  res.json({
-    status: 'ready',
+  router.get('/ready', (_req, res) => {
+    res.json({
+      status: 'ready',
+    });
   });
-});
 
-router.get('/api/incidents/demo', (_req, res) => {
-  res.json({
-    incident: 'simulated_latency_warning',
-    severity: 'low',
-    message:
-      'This endpoint demonstrates how incidents could be surfaced in logs or monitoring.',
-  });
-});
+  if (config.demoRoutesEnabled) {
+    router.get('/api/incidents/demo', (_req, res) => {
+      res.json({
+        incident: 'simulated_latency_warning',
+        severity: 'low',
+        message:
+          'This endpoint demonstrates how incidents could be surfaced in logs or monitoring.',
+      });
+    });
 
-router.get('/error-demo', (_req, _res, next) => {
-  next(new Error('Simulated failure for middleware validation.'));
-});
+    router.get('/error-demo', (_req, _res, next) => {
+      next(new Error('Simulated failure for middleware validation.'));
+    });
+  }
+
+  return router;
+};

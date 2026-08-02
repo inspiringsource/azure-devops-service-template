@@ -6,7 +6,7 @@ const globals = require('globals');
 module.exports = [
   js.configs.recommended,
   {
-    files: ['eslint.config.js'],
+    files: ['**/*.{js,mjs}'],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -31,6 +31,7 @@ module.exports = [
     },
     rules: {
       'no-console': 'off',
+      'no-undef': 'off',
       'no-unused-vars': 'off',
       '@typescript-eslint/no-misused-promises': 'off',
     },

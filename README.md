@@ -1,174 +1,180 @@
-# Azure DevOps Service Starter
+# Azure Container Apps Service Starter
 
-Azure DevOps service starter built as a public portfolio demo, demonstrating CI/CD, Docker, testing, logging, health checks, and Azure-ready infrastructure.
+A small, reusable TypeScript service starter that demonstrates GitHub Actions,
+GHCR, Docker, Bicep, testing, structured logging, health checks, and operational
+documentation. It is a production-minded starter and portfolio demonstration,
+not a production-complete application platform.
 
-## Architecture Overview
+The repository name and package slug remain `azure-devops-service-starter` for
+URL compatibility. This project uses GitHub Actions and Azure Container Apps; it
+does not use the Azure DevOps product.
 
-<img src="docs/architecture-diagram.png" alt="Azure DevOps Service Starter Architecture" width="60%">
-<p><em>High-level CI/CD and deployment flow for the service starter.</em></p>
+## Delivery flow
 
-## Project Structure
+```mermaid
+flowchart LR
+  Developer[Developer] --> GitHub[GitHub repository]
+  GitHub --> CI[Automatic CI<br/>lint, tests, build, audit,<br/>Bicep and container checks]
+  GitHub --> Release[Manual GHCR release<br/>immutable commit SHA]
+  Release --> GHCR[GitHub Container Registry]
+  GHCR --> Deploy[Optional manual deployment<br/>GitHub OIDC + Bicep]
+  Deploy --> ACA[Azure Container Apps]
+  ACA --> Logs[Log Analytics]
+```
 
-- `src/config`: runtime configuration
-- `src/routes`: HTTP endpoints
-- `src/middleware`: logging and error handling
-- `tests`: endpoint tests
-- `infra`: Azure (Bicep)
-- `docs`: architecture notes
+- **Automatic CI:** pull requests and pushes to `main` run validation only.
+- **Manual release:** `release.yml` publishes the current commit to GHCR using
+  the full commit SHA as its immutable tag, with SBOM and provenance.
+- **Optional deployment:** the same manual workflow deploys the exact published
+  digest only when `deploy_to_azure` is selected. Azure authentication uses
+  OIDC and a protected `azure-production` GitHub environment.
 
-See `docs/ARCHITECTURE.md` for details.
+No workflow automatically deploys on a push.
 
-## IT Operations & Modern Workplace Relevance
+## Prerequisites
 
-Beyond CI/CD and deployment, this repository is documented as something that can
-actually be *operated and supported*. It demonstrates:
+- Node.js 24 LTS (the repository includes `.nvmrc`)
+- npm 11 or the npm version bundled with Node 24
+- Docker with Docker Compose for container checks
+- Azure CLI with Bicep for infrastructure compilation or deployment
+- A GitHub repository with Actions enabled for release automation
 
-- **Reproducible deployment** — immutable, SHA-tagged container images and Bicep
-  infrastructure-as-code.
-- **Operational documentation** — a runbook, access-control model, and
-  onboarding/offboarding checklists.
-- **Health checks & monitoring thinking** — `/health` and `/ready` endpoints with
-  structured stdout logging ready for centralized log collection.
-- **Incident response** — a realistic support flow from "user reports an outage"
-  through triage, log review, deployment check, escalation, and documentation.
-- **Access control & security baseline** — a simple role model and practical
-  least-privilege / secrets-hygiene expectations.
+## Local-to-cloud walkthrough
 
-This makes the repo relevant to **IT Support, System Operations, Azure, CI/CD,
-technical documentation, and service reliability** — not just application
-delivery. It is a reusable service template with serious operational
-documentation, not a full enterprise platform.
-
-### Operational Documentation
-
-- [Operations Runbook](docs/OPERATIONS_RUNBOOK.md) — health checks, restart/redeploy, log review, triage, rollback, escalation
-- [Access Control](docs/ACCESS_CONTROL.md) — Owner/Admin, Developer, Support, Viewer role model
-- [Onboarding & Offboarding](docs/ONBOARDING_OFFBOARDING.md) — access grant/removal and handover checklists
-- [Security Baseline](docs/SECURITY_BASELINE.md) — secrets, least privilege, dependency and image hygiene
-- [Architecture](docs/ARCHITECTURE.md) — app structure and operational view
-- [Incident Simulation](docs/INCIDENT_SIMULATION.md) — worked support/incident walkthrough
-- [Operational Changelog](docs/CHANGELOG_OPERATIONS.md) — example record of deploys, incidents, and access changes
-
-## API Endpoints
-
-- `GET /` → service metadata (name, environment, version)
-- `GET /health` → liveness (uptime, timestamp)
-- `GET /ready` → readiness
-- `GET /api/incidents/demo` → simulated incident payload
-
-## CI/CD Pipeline
-
-CI/CD is disabled by default. Enable it by updating the GitHub Actions triggers and providing the required secrets.
-
-When run manually:
-
-1. `npm ci`
-2. `npm test`
-3. `npm run build`
-4. `npm run lint`
-5. `docker build`
-6. Push image to GHCR:  
-   `ghcr.io/${{ github.repository }}:${{ github.sha }}`
-7. Optional `latest` tag
-
-Uses `GITHUB_TOKEN`. Azure deploy is optional.
-
-## Local Development
+### 1. Install and run locally
 
 ```bash
-npm install
+nvm use
+npm ci
 cp .env.example .env
-npm run dev
+npm run check
+npm start
 ```
 
-Runs on `http://localhost:3000`.
-
-## Starter Customization
+In another terminal:
 
 ```bash
-./scripts/init-template.sh my-service-name
+curl --fail http://localhost:3000/
+curl --fail http://localhost:3000/health
+curl --fail http://localhost:3000/ready
 ```
 
-Updates common identifiers. Review changes after running.
+Use `npm run dev` for watch mode. Cloned, lockfile-based setups should use
+`npm ci`; use `npm install` only when intentionally changing dependencies.
 
-## Docker
+### 2. Run the container locally
 
 ```bash
-docker build -t azure-devops-service-starter .
-docker run -p 3000:3000 --env-file .env azure-devops-service-starter
+docker compose up --build --detach
+docker compose ps
+curl --fail http://localhost:3000/health
+docker compose down
 ```
+
+### 3. Validate infrastructure without deploying
 
 ```bash
-docker compose up --build
+az bicep build --file infra/main.bicep
 ```
 
-Runs with basic health check and restart policy for local testing.
+### 4. Use automatic CI
 
-## Testing
+Open a pull request or push to `main`. `.github/workflows/ci.yml` installs from
+the lockfile, lints, tests with coverage, builds, audits production
+dependencies, compiles Bicep, builds the image, and smoke-tests container
+health. CI has read-only repository permissions and does not publish or deploy.
+
+### 5. Publish an immutable image
+
+Run **Release image and optionally deploy** from the GitHub Actions UI with
+`deploy_to_azure` left false. The workflow logs into GHCR with its scoped
+`GITHUB_TOKEN` and publishes:
+
+```text
+ghcr.io/<lowercase-owner>/<lowercase-repository>:<full-commit-sha>
+```
+
+The secret-free Bicep example can pull from GHCR only when the package is
+public. Private GHCR packages need registry credentials configured in Container
+Apps. For production, Azure Container Registry with managed identity is the
+recommended extension.
+
+### 6. Configure optional Azure deployment
+
+Create an existing resource group and an Entra application/service principal
+with a GitHub federated credential scoped to the protected
+`azure-production` environment. Configure these GitHub environment variables:
+
+- `AZURE_CLIENT_ID`
+- `AZURE_TENANT_ID`
+- `AZURE_SUBSCRIPTION_ID`
+
+Grant that identity only the Azure RBAC permissions needed to deploy into the
+target resource group. Protect the environment with the reviewers appropriate
+for the repository. Then run the manual release workflow with
+`deploy_to_azure=true`, the resource group, and app name. The Azure job deploys
+`infra/main.bicep` with the exact image digest produced by the publish job.
+
+## API endpoints
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /` | Service name, environment, and version |
+| `GET /health` | Process liveness, uptime, and timestamp |
+| `GET /ready` | Shallow process readiness |
+| `GET /api/incidents/demo` | Optional simulated incident response |
+| `GET /error-demo` | Optional error-handler demonstration |
+
+`/ready` is intentionally shallow because the starter has no external
+dependencies. Add dependency checks when adding databases, queues, or required
+upstream services.
+
+Demo routes are available in tests and local development. In
+`NODE_ENV=production`, both return 404 unless `ENABLE_DEMO_ROUTES=true` is set
+explicitly. Keep the flag false for normal deployments.
+
+Every response includes a generated `x-request-id`. Structured request logs use
+the route path without query parameters to avoid leaking query-string values.
+
+## Configuration
+
+See `.env.example`. `PORT` must be between 1 and 65535, and
+`ENABLE_DEMO_ROUTES` accepts only `true` or `false`.
+
+## Customize the starter
+
+The initializer validates a lowercase hyphenated service slug, supports a safe
+preview, and changes names without creating backup files:
 
 ```bash
-npm test
-npm run build
-npm run lint
+npm run init:template -- --dry-run my-service
+npm run init:template -- my-service
 ```
 
-## Infrastructure (Azure)
+Run the non-dry command only in a fresh copy or branch, then review all changes.
 
-`infra/main.bicep` provides a minimal Container Apps setup:
+## Project structure
 
-- Log Analytics
-- Container Apps environment
-- Container App
+- `src/` — Express application, configuration, routes, and middleware
+- `tests/` — endpoint and configuration tests
+- `infra/` — minimal Azure Container Apps Bicep
+- `.github/workflows/` — automatic CI and manual release/deployment
+- `docs/` — architecture, security, access, incident, and operations guidance
 
-Example:
+## Operational documentation
 
-```bash
-az deployment group create \
-  --resource-group my-rg \
-  --template-file infra/main.bicep \
-  --parameters appName=my-service containerImage=ghcr.io/my-org/my-service:latest
-```
-
-## Deployment Options
-
-- **Azure Container Apps**: deploy the built image
-- **Azure App Service**: container-based deployment
-- **Extend IaC**: expand Bicep or switch to Terraform
-
-## Secrets
-
-- GHCR uses `GITHUB_TOKEN`
-- Azure uses `AZURE_CREDENTIALS`, `AZURE_RESOURCE_GROUP`, `AZURE_CONTAINER_APP_NAME`
-- Store secrets in GitHub Secrets or Azure Key Vault
-- Do not commit credentials
-
-## What This Shows
-
-- CI/CD pipeline (build → test → package → publish)
-- Containerization and reproducible builds
-- Basic Azure setup with Bicep
-- Service structure with health checks and logging
+- [Architecture](docs/ARCHITECTURE.md)
+- [Operations runbook](docs/OPERATIONS_RUNBOOK.md)
+- [Access control](docs/ACCESS_CONTROL.md)
+- [Onboarding and offboarding](docs/ONBOARDING_OFFBOARDING.md)
+- [Security baseline](docs/SECURITY_BASELINE.md)
+- [Incident simulation](docs/INCIDENT_SIMULATION.md)
+- [Operational changelog](docs/CHANGELOG_OPERATIONS.md)
 
 ## Scope
 
-This starter focuses on the delivery pipeline and service structure.
-
-It intentionally excludes:
-
-- database integration
-- authentication
-- domain-specific logic
-
-The goal is to provide a clean base that can be extended for different services without unnecessary pre-existing complexity.
-
-## What’s Included
-
-- TypeScript Node.js service with a clear structure
-- Health and readiness endpoints (`/health`, `/ready`)
-- Logging and centralized error handling
-- Jest tests
-- Docker for local and cloud runs
-- GitHub Actions CI/CD (template, disabled by default)
-- Docker image publishing to GHCR
-- Minimal Azure Container Apps example using Bicep
-- Simple starter/template setup for reuse
+The starter intentionally excludes authentication, a database, private
+networking, custom domains, and domain-specific business logic. The Bicep uses
+single-revision mode: a deployment replaces the active revision after it is
+ready; it does not demonstrate weighted traffic shifting. Extend the starter
+only for requirements the adopting service actually has.

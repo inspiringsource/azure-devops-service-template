@@ -23,7 +23,7 @@ Types: `deploy`, `incident`, `rollback`, `secret-rotation`, `access`, `note`
 - 2026-06-10 — rollback — Reverted to previous known-good image
   (`ghcr.io/my-org/my-service:5b2e7d8`) to restore normal latency while a fix was
   prepared. Verified with health check.
-- 2026-06-08 — secret-rotation — Rotated Azure deployment credential after a team
-  member offboarding. Pipeline re-verified.
+- 2026-06-08 — access — Removed an obsolete Azure role assignment after a team
+  member offboarding. OIDC deployment was re-verified.
 - 2026-06-08 — access — Removed departing user from repository and Azure group;
   handover documented.

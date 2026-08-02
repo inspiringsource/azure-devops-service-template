@@ -1,18 +1,19 @@
-# Infrastructure Notes
+# Azure Container Apps infrastructure
 
-Infrastructure in this repository is intentionally lightweight because the goal is to demonstrate a credible production-style delivery path for a public portfolio starter/template, not to ship a full platform stack.
+`main.bicep` is intentionally small. It creates one Log Analytics workspace,
+one Container Apps managed environment, and one public Container App in an
+existing resource group. It adds TLS-only ingress, explicit HTTP liveness and
+readiness probes, resource tags, and `APP_VERSION`.
 
-## Included Example
+## Validate without deploying
 
-[main.bicep](main.bicep) provisions a minimal Azure Container Apps setup inside an existing resource group:
+```bash
+az bicep build --file infra/main.bicep
+```
 
-- Log Analytics workspace
-- Container Apps environment
-- Container App
+## Deploy an immutable image
 
-The template keeps the parameter surface small and avoids secrets. It assumes the container image is already available in a registry such as GHCR.
-
-## Example Deployment
+`containerImage` is required and has no public default:
 
 ```bash
 az deployment group create \
@@ -20,23 +21,27 @@ az deployment group create \
   --template-file infra/main.bicep \
   --parameters \
     appName=my-service \
-    environmentName=my-service-env \
-    logAnalyticsName=my-service-logs \
-    containerImage=ghcr.io/my-org/my-service:latest
+    containerImage=ghcr.io/my-org/my-service@sha256:<digest> \
+    deploymentVersion=<full-commit-sha> \
+    tags='{"environment":"demo","managedBy":"bicep"}'
 ```
 
-## What Is Intentionally Not Included
+The default `minimumReplicas=0` and `maximumReplicas=1` reduce idle cost for a
+demo but allow a cold start after scale-to-zero. Increase the minimum when
+latency requirements justify the cost.
 
-- Resource group creation
-- Private networking
-- Custom domains and certificates
-- Secret injection
-- Advanced scaling rules
+The app uses single-revision mode. This template does not configure weighted
+traffic shifting or multiple active revisions.
 
-Those are valid next steps for a real project, but they are omitted here to keep the starter readable and portfolio-friendly.
+## Registry behavior
 
-## How This Could Be Extended
+The secret-free example assumes the GHCR package is public. Private GHCR images
+require registry credentials configured in Container Apps. Azure Container
+Registry with a managed identity and `AcrPull` is the recommended production
+extension.
 
-- Add Bicep modules for environments, identities, and monitoring
-- Swap or supplement Bicep with Terraform if that better matches the target team
-- Add managed identities, Key Vault references, and private registry credentials
+## Deliberately excluded
+
+Resource-group creation, databases, Kubernetes, private networking, custom
+domains, runtime secrets, and a large monitoring platform are outside this
+starter's scope.
